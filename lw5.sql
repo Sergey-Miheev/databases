@@ -29,7 +29,7 @@ LEFT JOIN room_in_booking   ON booking.id_booking = room_in_booking.id_booking
 LEFT JOIN room ON room_in_booking.id_room = room.id_room
 LEFT JOIN room_category ON room.id_room_category = room_category.id_room_category
 WHERE room_in_booking.checkin_date <= '01-04-2019' AND room_in_booking.checkout_date > '01-04-2019'
-AND room_category.name = 'Люкс';
+AND room.id_hotel = 1 AND room_category.name = 'Люкс';
 
 -- 3. Дать список свободных номеров всех гостиниц на 22 апреля.
 
@@ -41,7 +41,7 @@ AND room_in_booking.checkout_date > '22-04-2019');
 -- 4. Дать количество проживающих в гостинице “Космос” на 23 марта по
 -- каждой категории номеров
 
-SELECT COUNT(booking.id_client) AS "Count of clients" FROM booking
+SELECT COUNT(booking.id_client) AS "Count of clients", room.id_room_category FROM booking
 LEFT JOIN room_in_booking ON booking.id_booking = room_in_booking.id_booking
 LEFT JOIN room ON room_in_booking.id_room = room.id_room
 WHERE room.id_hotel = 1 AND room_in_booking.checkin_date <= '23-03-2019'
@@ -57,24 +57,22 @@ room_in_booking.id_room FROM room_in_booking
 LEFT JOIN booking ON room_in_booking.id_booking = booking.id_booking
 WHERE room_in_booking.id_room IN (SELECT id_room FROM room WHERE id_hotel = 1) AND
 room_in_booking.checkin_date >= '1-04-2019' AND room_in_booking.checkout_date <= '30-04-2019'
-GROUP BY 2
-ORDER BY 2);
+GROUP BY room_in_booking.id_room
+ORDER BY room_in_booking.id_room);
 
 -- конечный запрос
-SELECT c.name, MAX(tt.last_checkout_date) AS max_date, tt.id_room
+SELECT c.name,tt.last_checkout_date, tt.id_room
 FROM temp_tab tt
 LEFT JOIN room_in_booking rib ON rib.checkout_date = tt.last_checkout_date
     AND rib.id_room = tt.id_room
 LEFT JOIN booking b ON rib.id_booking = b.id_booking
-LEFT JOIN client c on b.id_client = c.id_client
-GROUP BY 3, 1
-ORDER BY 3;
+LEFT JOIN client c ON b.id_client = c.id_client
+ORDER BY tt.id_room;
 
 -- 6.Продлить на 2 дня дату проживания в гостинице “Космос” всем клиентам
 -- комнат категории “Бизнес”, которые заселились 10 мая.
-
-UPDATE room_in_booking SET checkout_date = checkout_date + 2 WHERE
-checkout_date IN (SELECT checkout_date FROM room_in_booking rib
+UPDATE room_in_booking SET checkout_date = checkout_date + '2 days'::INTERVAL
+WHERE checkout_date IN (SELECT checkout_date FROM room_in_booking rib
 LEFT JOIN room r on rib.id_room = r.id_room
 LEFT JOIN room_category rc on r.id_room_category = rc.id_room_category
 LEFT JOIN hotel h on r.id_hotel = h.id_hotel
@@ -88,8 +86,10 @@ WHERE rib.checkin_date = '10-05-2019' AND rc.name = 'Бизнес' AND h.name = 
 
 SELECT * FROM room_in_booking rib1
 INNER JOIN room_in_booking rib2 ON rib1.id_room = rib2.id_room
-WHERE rib1.checkin_date <= rib2.checkin_date
-AND rib1.checkout_date > rib2.checkout_date
+WHERE (rib1.checkin_date <= rib2.checkin_date
+AND rib1.checkout_date > rib2.checkout_date)
+OR (rib2.checkin_date <= rib1.checkin_date
+AND rib2.checkout_date > rib1.checkout_date)
 AND rib1.id_room_in_booking != rib2.id_room_in_booking;
 
 -- 8. Создать бронирование в транзакции.
