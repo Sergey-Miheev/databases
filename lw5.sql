@@ -60,7 +60,7 @@ room_in_booking.checkin_date >= '1-04-2019' AND room_in_booking.checkout_date <=
 GROUP BY room_in_booking.id_room
 ORDER BY room_in_booking.id_room);
 
--- конечный запрос
+-- Конечный запрос
 SELECT c.name,tt.last_checkout_date, tt.id_room
 FROM temp_tab tt
 LEFT JOIN room_in_booking rib ON rib.checkout_date = tt.last_checkout_date
