@@ -86,10 +86,7 @@ WHERE rib.checkin_date = '10-05-2019' AND rc.name = 'Бизнес' AND h.name = 
 
 SELECT * FROM room_in_booking rib1
 INNER JOIN room_in_booking rib2 ON rib1.id_room = rib2.id_room
-WHERE (rib1.checkin_date <= rib2.checkin_date
-AND rib1.checkout_date > rib2.checkout_date)
-OR (rib2.checkin_date <= rib1.checkin_date
-AND rib2.checkout_date > rib1.checkout_date)
+WHERE rib1.checkin_date < rib2.checkout_date AND rib1.checkin_date > rib2.checkin_date
 AND rib1.id_room_in_booking != rib2.id_room_in_booking;
 
 -- 8. Создать бронирование в транзакции.
@@ -98,14 +95,15 @@ BEGIN;
 SAVEPOINT start_point;
 
 INSERT INTO booking (id_client, booking_date)
-VALUES (11, current_date + 1);
+VALUES (11, current_date + '1 days'::INTERVAL);
 
 INSERT INTO room_in_booking (id_booking, id_room, checkin_date, checkout_date)
 VALUES ((SELECT booking.id_booking FROM booking ORDER BY 1 DESC LIMIT 1), 7,
-    current_date + 1, current_date + 6);
+    current_date + '2 days'::INTERVAL, current_date + '4 days'::INTERVAL);
 
---ROLLBACK TO start_point;
+ROLLBACK TO start_point;
 COMMIT;
+
 
 -- 9. Добавить необходимые индексы для всех таблиц
 
